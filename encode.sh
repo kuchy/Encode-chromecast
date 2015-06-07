@@ -44,12 +44,14 @@ fi
 SYNOLOGY_IP=$1
 SYNOLOGY_USER=$2
 SEARCH_PATH="/volume*/$3"
-TMP_ORIG_FILES="./temp/orig/"
-TMP_NEW_FILES="./temp/new/"
-FILES="./queue.txt"
+#TODO add this temporary files to system temporary files
+TMP_ORIG_FILES="temp/orig/"
+TMP_NEW_FILES="temp/new/"
+#TODO remove
+FILES="queue.txt"
 
 #find files in avi format - in most cases bad format
-ssh $SYNOLOGY_USER@$SYNOLOGY_IP "find $SEARCH_PATH -name '*avi'" > queue.txt
+#ssh $SYNOLOGY_USER@$SYNOLOGY_IP "find $SEARCH_PATH -name '*avi'" > queue.txt
 
 while read FILES
 do
@@ -58,6 +60,8 @@ do
     # get filename from path
     FILE_NAME=$(basename "$FILES")
     FILE_NAME=$(echo $FILE_NAME | sed 's/ /\\ /g')
+#    TODO remove extension
+    echo $FILE_NAME
 
     # copy files localy
     scp "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH" "$TMP_ORIG_FILES$FILE_NAME"
@@ -68,19 +72,25 @@ do
     HandBrakeCLI -i "$TMP_ORIG_FILES$FILE_NAME" -o "$TMP_NEW_FILES$FILE_NAME.mkv" --format av_mkv --encoder x264 < /dev/null
     error_handling
 
-    # remove temporaty files
+    # remove original temporarily files
     rm "$TMP_ORIG_FILES$FILE_NAME"
     error_handling
 
-#   TODO upload new file to server
+    DIR=$(dirname "$FILE_PATH")
+    scp "$TMP_NEW_FILES$FILE_NAME.mkv" "$SYNOLOGY_USER@$SYNOLOGY_IP:$DIR/$FILE_NAME.mkv"
+    error_handling
 
-#    # remove from remote
-#    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm \"$FILES\""
+    # remove encoded temporarily files
+    rm "$TMP_NEW_FILES$FILE_NAME.mkv"
+    error_handling
+
+    # bugg
+#    # remove original from remote
+#    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm \"$FILE_PATH\""
 #    error_handling
 
 done < queue.txt
 
-exit 0
+rm $FILES
 
-#Encode-chromecast
-#Simple homemade bash script to find, download files (remote) in avi format and encode it (on local pc) to H.264/MPEG-4 and upload back.
+exit 0
