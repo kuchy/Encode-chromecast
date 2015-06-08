@@ -47,50 +47,48 @@ SEARCH_PATH="/volume*/$3"
 #TODO add this temporary files to system temporary files
 TMP_ORIG_FILES="temp/orig/"
 TMP_NEW_FILES="temp/new/"
-#TODO remove
 FILES="queue.txt"
 
 #find files in avi format - in most cases bad format
-#ssh $SYNOLOGY_USER@$SYNOLOGY_IP "find $SEARCH_PATH -name '*avi'" > queue.txt
+ssh $SYNOLOGY_USER@$SYNOLOGY_IP "find $SEARCH_PATH -name '*avi'" > queue.txt
 
 while read FILES
 do
     FILE_PATH=$(echo $FILES | sed 's/ /\\ /g')
 
     # get filename from path
-    FILE_NAME=$(basename "$FILES")
-    FILE_NAME=$(echo $FILE_NAME | sed 's/ /\\ /g')
-#    TODO remove extension
-    echo $FILE_NAME
+    FILE_NAME=$(basename "$FILES"| cut -d. -f1)
+    LOCAL_ORIGFILE="$TMP_ORIG_FILES$FILE_NAME.avi"
+    LOCAL_ENCODED_FILE="$TMP_NEW_FILES$FILE_NAME.mkv"
 
     # copy files localy
-    scp "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH" "$TMP_ORIG_FILES$FILE_NAME"
+    scp "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH" "$LOCAL_ORIGFILE"
     error_handling
+
 
     # process to new
     # HandBrakeCLI stealing all stdin like ssh
-    HandBrakeCLI -i "$TMP_ORIG_FILES$FILE_NAME" -o "$TMP_NEW_FILES$FILE_NAME.mkv" --format av_mkv --encoder x264 < /dev/null
+    HandBrakeCLI -i "$LOCAL_ORIGFILE" -o "$LOCAL_ENCODED_FILE" --format av_mkv --encoder x264 < /dev/null
     error_handling
 
-    # remove original temporarily files
-    rm "$TMP_ORIG_FILES$FILE_NAME"
+#    # remove original temporarily files
+    rm "$LOCAL_ORIGFILE"
     error_handling
 
-    DIR=$(dirname "$FILE_PATH")
-    scp "$TMP_NEW_FILES$FILE_NAME.mkv" "$SYNOLOGY_USER@$SYNOLOGY_IP:$DIR/$FILE_NAME.mkv"
+    scp "$LOCAL_ENCODED_FILE" "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH.mkv"
     error_handling
+
 
     # remove encoded temporarily files
-    rm "$TMP_NEW_FILES$FILE_NAME.mkv"
+    rm "$LOCAL_ENCODED_FILE"
     error_handling
 
-    # bugg
-#    # remove original from remote
-#    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm \"$FILE_PATH\""
-#    error_handling
+    # remove original from remote
+    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm $FILE_PATH"
+    error_handling
 
 done < queue.txt
 
-rm $FILES
+#rm queue.txt
 
 exit 0
