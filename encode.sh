@@ -84,7 +84,7 @@ do
     error_handling
 
     # remove original from remote
-    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm $FILE_PATH"
+    ssh $SYNOLOGY_USER@$SYNOLOGY_IP "rm $FILE_PATH" < /dev/null
     error_handling
 
 done < queue.txt
