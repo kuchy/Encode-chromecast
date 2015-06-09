@@ -65,19 +65,18 @@ do
     scp "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH" "$LOCAL_ORIGFILE"
     error_handling
 
-
     # process to new
     # HandBrakeCLI stealing all stdin like ssh
-    HandBrakeCLI -i "$LOCAL_ORIGFILE" -o "$LOCAL_ENCODED_FILE" --format av_mkv --encoder x264 < /dev/null
-    error_handling
-
-#    # remove original temporarily files
-    rm "$LOCAL_ORIGFILE"
+    # process 1-8 audio tracks
+    HandBrakeCLI -i "$LOCAL_ORIGFILE" -o "$LOCAL_ENCODED_FILE" --format av_mkv --encoder x264 -a 1,2,3,4,5,6,7,8 --aencoder copy:* < /dev/null
     error_handling
 
     scp "$LOCAL_ENCODED_FILE" "$SYNOLOGY_USER@$SYNOLOGY_IP:$FILE_PATH.mkv"
     error_handling
 
+    #    # remove original temporarily files
+    rm "$LOCAL_ORIGFILE"
+    error_handling
 
     # remove encoded temporarily files
     rm "$LOCAL_ENCODED_FILE"
